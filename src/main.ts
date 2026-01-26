@@ -5,6 +5,7 @@ import {DEFAULT_SETTINGS, LockstepPluginSettings, SampleSettingTab} from "./sett
 
 export default class LockstepPlugin extends Plugin {
 	settings: LockstepPluginSettings;
+	private overlayEl: HTMLElement | null = null; // Store overlay reference
 
 	async onload() {
 		await this.loadSettings();
@@ -68,9 +69,33 @@ export default class LockstepPlugin extends Plugin {
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 
+		// Add black overlay to block horizontal-main-container
+		const target = document.querySelector('.horizontal-main-container') as HTMLElement;
+		if (target) {
+			const overlay = document.createElement('div');
+			overlay.style.position = 'absolute';
+			overlay.style.top = '0';
+			overlay.style.left = '0';
+			overlay.style.width = '100%';
+			overlay.style.height = '100%';
+			overlay.style.background = 'black';
+			overlay.style.opacity = '0.3'; // 30% alpha
+			overlay.style.zIndex = '9999';
+			overlay.style.pointerEvents = 'auto';
+			overlay.className = 'lockstep-black-overlay';
+			target.style.position = 'relative'; // Ensure target is positioned
+			target.appendChild(overlay);
+			this.overlayEl = overlay;
+		}
+
 	}
 
 	onunload() {
+		// Remove overlay if it exists
+		if (this.overlayEl && this.overlayEl.parentElement) {
+			this.overlayEl.parentElement.removeChild(this.overlayEl);
+			this.overlayEl = null;
+		}
 	}
 
 	async loadSettings() {
