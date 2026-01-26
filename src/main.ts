@@ -69,6 +69,27 @@ export default class LockstepPlugin extends Plugin {
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 
+		// Log the aria-label of class="status-bar-item plugin-sync" every 5 seconds
+		this.registerInterval(window.setInterval(() => {
+			const el = document.querySelector('.status-bar-item.plugin-sync');
+			if (el) {
+				console.log('plugin-sync aria-label:', el.getAttribute('aria-label'));
+			} else {
+				console.log('plugin-sync aria-label: element not found');
+			}
+		}, 5000));
+
+		// Every second, hide the black overlay if aria-label is "Fully synced"
+		this.registerInterval(window.setInterval(() => {
+			const el = document.querySelector('.status-bar-item.plugin-sync');
+			const ariaLabel = el?.getAttribute('aria-label');
+			if (ariaLabel === "Fully synced" && this.overlayEl) {
+				this.overlayEl.style.display = "none";
+			} else if (this.overlayEl) {
+				this.overlayEl.style.display = "";
+			}
+		}, 1000));
+
 		// Add black overlay to block horizontal-main-container
 		const target = document.querySelector('.horizontal-main-container') as HTMLElement;
 		if (target) {
