@@ -6,6 +6,8 @@ import {DEFAULT_SETTINGS, LockstepPluginSettings, SampleSettingTab} from "./sett
 export default class LockstepPlugin extends Plugin {
 	settings: LockstepPluginSettings;
 	private overlayEl: HTMLElement | null = null; // Store overlay reference
+	private syncingTextEl: HTMLElement | null = null; // Store syncing text reference
+	private typingBlockHandler: ((e: KeyboardEvent) => void) | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -69,7 +71,7 @@ export default class LockstepPlugin extends Plugin {
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 
-		// Log the aria-label of class="status-bar-item plugin-sync" every 5 seconds
+		// Log the aria-label of class="status-bar-item.plugin-sync" every 5 seconds
 		this.registerInterval(window.setInterval(() => {
 			const el = document.querySelector('.status-bar-item.plugin-sync');
 			if (el) {
@@ -85,8 +87,30 @@ export default class LockstepPlugin extends Plugin {
 			const ariaLabel = el?.getAttribute('aria-label');
 			if (ariaLabel === "Fully synced" && this.overlayEl) {
 				this.overlayEl.style.display = "none";
+				if (this.syncingTextEl) this.syncingTextEl.style.display = "none";
+				// Remove typing block if present
+				if (this.typingBlockHandler) {
+					document.removeEventListener('keydown', this.typingBlockHandler, true);
+					this.typingBlockHandler = null;
+				}
 			} else if (this.overlayEl) {
 				this.overlayEl.style.display = "";
+				if (this.syncingTextEl) this.syncingTextEl.style.display = "";
+				// Add typing block if not present
+				if (!this.typingBlockHandler) {
+					this.typingBlockHandler = (e: KeyboardEvent) => {
+						if (this.overlayEl && this.overlayEl.style.display !== "none") {
+							if (
+								!e.ctrlKey && !e.metaKey &&
+								e.key.length === 1 // printable character
+							) {
+								e.stopPropagation();
+								e.preventDefault();
+							}
+						}
+					};
+					document.addEventListener('keydown', this.typingBlockHandler, true);
+				}
 			}
 		}, 1000));
 
@@ -107,6 +131,52 @@ export default class LockstepPlugin extends Plugin {
 			target.style.position = 'relative'; // Ensure target is positioned
 			target.appendChild(overlay);
 			this.overlayEl = overlay;
+
+			// Add "syncing..." text overlay
+			const syncingText = document.createElement('div');
+			syncingText.textContent = "syncing...";
+			syncingText.style.position = 'absolute';
+			syncingText.style.top = '50%';
+			syncingText.style.left = '50%';
+			syncingText.style.transform = 'translate(-50%, -50%)';
+			syncingText.style.color = 'white';
+			syncingText.style.fontSize = '2em';
+			syncingText.style.fontWeight = 'bold';
+			syncingText.style.zIndex = '10000';
+			syncingText.style.pointerEvents = 'none';
+			syncingText.style.userSelect = 'none';
+			syncingText.className = 'lockstep-syncing-text';
+			target.appendChild(syncingText);
+			this.syncingTextEl = syncingText;
+		}
+
+		// Immediately set overlay and typing block state based on aria-label
+		const el = document.querySelector('.status-bar-item.plugin-sync');
+		const ariaLabel = el?.getAttribute('aria-label');
+		if (ariaLabel === "Fully synced" && this.overlayEl) {
+			this.overlayEl.style.display = "none";
+			if (this.syncingTextEl) this.syncingTextEl.style.display = "none";
+			if (this.typingBlockHandler) {
+				document.removeEventListener('keydown', this.typingBlockHandler, true);
+				this.typingBlockHandler = null;
+			}
+		} else if (this.overlayEl) {
+			this.overlayEl.style.display = "";
+			if (this.syncingTextEl) this.syncingTextEl.style.display = "";
+			if (!this.typingBlockHandler) {
+				this.typingBlockHandler = (e: KeyboardEvent) => {
+					if (this.overlayEl && this.overlayEl.style.display !== "none") {
+						if (
+							!e.ctrlKey && !e.metaKey &&
+							e.key.length === 1 // printable character
+						) {
+							e.stopPropagation();
+							e.preventDefault();
+						}
+					}
+				};
+				document.addEventListener('keydown', this.typingBlockHandler, true);
+			}
 		}
 
 	}
@@ -116,6 +186,16 @@ export default class LockstepPlugin extends Plugin {
 		if (this.overlayEl && this.overlayEl.parentElement) {
 			this.overlayEl.parentElement.removeChild(this.overlayEl);
 			this.overlayEl = null;
+		}
+		// Remove syncing text if it exists
+		if (this.syncingTextEl && this.syncingTextEl.parentElement) {
+			this.syncingTextEl.parentElement.removeChild(this.syncingTextEl);
+			this.syncingTextEl = null;
+		}
+		// Remove typing block if present
+		if (this.typingBlockHandler) {
+			document.removeEventListener('keydown', this.typingBlockHandler, true);
+			this.typingBlockHandler = null;
 		}
 	}
 
