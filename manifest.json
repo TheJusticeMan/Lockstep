@@ -1,7 +1,7 @@
 {
 	"id": "lockstep",
 	"name": "Lockstep",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Restricts note editing while waiting on the status of the official Sync plguin in order to prevent merge conflicts.",
 	"author": "Andrew P",
