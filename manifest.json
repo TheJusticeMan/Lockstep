@@ -5,7 +5,7 @@
 	"minAppVersion": "0.15.0",
 	"description": "Restricts note editing while waiting on the status of Obsidian sync in order to prevent merge conflicts.",
 	"author": "Andrew P",
-	"authorUrl": "https://obsidian.md",
+	"authorUrl": "https://github.com/Spleenagon",
 	"fundingUrl": "https://obsidian.md/pricing",
 	"isDesktopOnly": false
 }
