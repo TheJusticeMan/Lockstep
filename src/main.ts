@@ -7,6 +7,7 @@ export default class LockstepPlugin extends Plugin {
 	settings: LockstepPluginSettings;
 	private overlayEl: HTMLElement | null = null; // Store overlay reference
 	private syncingTextEl: HTMLElement | null = null; // Store syncing text reference
+	private disableBtnEl: HTMLElement | null = null; // Store disable button reference
 	private typingBlockHandler: ((e: KeyboardEvent) => void) | null = null;
 	private fullySyncedCount: number = 0; // Track consecutive "Fully synced"
 	private overlayDisabled: boolean = false; // Disable overlay for session
@@ -93,9 +94,9 @@ export default class LockstepPlugin extends Plugin {
 				this.fullySyncedCount++;
 				if (this.fullySyncedCount >= 3) {
 					this.overlayDisabled = true;
-					// Hide overlays and remove typing block permanently
 					if (this.overlayEl) this.overlayEl.style.display = "none";
 					if (this.syncingTextEl) this.syncingTextEl.style.display = "none";
+					if (this.disableBtnEl) this.disableBtnEl.style.display = "none";
 					if (this.typingBlockHandler) {
 						document.removeEventListener('keydown', this.typingBlockHandler, true);
 						this.typingBlockHandler = null;
@@ -104,6 +105,7 @@ export default class LockstepPlugin extends Plugin {
 				}
 				if (this.overlayEl) this.overlayEl.style.display = "none";
 				if (this.syncingTextEl) this.syncingTextEl.style.display = "none";
+				if (this.disableBtnEl) this.disableBtnEl.style.display = "none";
 				if (this.typingBlockHandler) {
 					document.removeEventListener('keydown', this.typingBlockHandler, true);
 					this.typingBlockHandler = null;
@@ -112,6 +114,7 @@ export default class LockstepPlugin extends Plugin {
 				this.fullySyncedCount = 0; // Reset counter if not fully synced
 				this.overlayEl.style.display = "";
 				if (this.syncingTextEl) this.syncingTextEl.style.display = "";
+				if (this.disableBtnEl) this.disableBtnEl.style.display = "";
 				// Add typing block if not present
 				if (!this.typingBlockHandler) {
 					this.typingBlockHandler = (e: KeyboardEvent) => {
@@ -164,6 +167,35 @@ export default class LockstepPlugin extends Plugin {
 			syncingText.className = 'lockstep-syncing-text';
 			target.appendChild(syncingText);
 			this.syncingTextEl = syncingText;
+
+			// Add "Disable overlay" button below syncing text
+			const disableBtn = document.createElement('button');
+			disableBtn.textContent = "Disable overlay for session";
+			disableBtn.style.position = 'absolute';
+			disableBtn.style.top = 'calc(50% + 2em)';
+			disableBtn.style.left = '50%';
+			disableBtn.style.transform = 'translate(-50%, 0)';
+			disableBtn.style.zIndex = '10001';
+			disableBtn.style.fontSize = '1em';
+			disableBtn.style.padding = '0.5em 1em';
+			disableBtn.style.background = '#222';
+			disableBtn.style.color = 'white';
+			disableBtn.style.border = 'none';
+			disableBtn.style.borderRadius = '4px';
+			disableBtn.style.cursor = 'pointer';
+			disableBtn.className = 'lockstep-disable-overlay-btn';
+			disableBtn.onclick = () => {
+				this.overlayDisabled = true;
+				if (this.overlayEl) this.overlayEl.style.display = "none";
+				if (this.syncingTextEl) this.syncingTextEl.style.display = "none";
+				if (disableBtn) disableBtn.style.display = "none";
+				if (this.typingBlockHandler) {
+					document.removeEventListener('keydown', this.typingBlockHandler, true);
+					this.typingBlockHandler = null;
+				}
+			};
+			target.appendChild(disableBtn);
+			this.disableBtnEl = disableBtn;
 		}
 
 		// Immediately set overlay and typing block state based on aria-label
@@ -173,6 +205,7 @@ export default class LockstepPlugin extends Plugin {
 			this.fullySyncedCount = 1;
 			this.overlayEl.style.display = "none";
 			if (this.syncingTextEl) this.syncingTextEl.style.display = "none";
+			if (this.disableBtnEl) this.disableBtnEl.style.display = "none";
 			if (this.typingBlockHandler) {
 				document.removeEventListener('keydown', this.typingBlockHandler, true);
 				this.typingBlockHandler = null;
@@ -181,6 +214,7 @@ export default class LockstepPlugin extends Plugin {
 			this.fullySyncedCount = 0;
 			this.overlayEl.style.display = "";
 			if (this.syncingTextEl) this.syncingTextEl.style.display = "";
+			if (this.disableBtnEl) this.disableBtnEl.style.display = "";
 			if (!this.typingBlockHandler) {
 				this.typingBlockHandler = (e: KeyboardEvent) => {
 					if (this.overlayEl && this.overlayEl.style.display !== "none") {
@@ -209,6 +243,11 @@ export default class LockstepPlugin extends Plugin {
 		if (this.syncingTextEl && this.syncingTextEl.parentElement) {
 			this.syncingTextEl.parentElement.removeChild(this.syncingTextEl);
 			this.syncingTextEl = null;
+		}
+		// Remove disable button if present
+		if (this.disableBtnEl && this.disableBtnEl.parentElement) {
+			this.disableBtnEl.parentElement.removeChild(this.disableBtnEl);
+			this.disableBtnEl = null;
 		}
 		// Remove typing block if present
 		if (this.typingBlockHandler) {
